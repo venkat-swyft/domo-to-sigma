@@ -1,0 +1,13 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.venv/
+
+# Working scratch
+/tmp/
+*-scratch/
+.DS_Store
+
+# Local secrets — credentials live in ~/.claude/settings.json or env
+.sigma-env
