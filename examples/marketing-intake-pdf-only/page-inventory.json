@@ -1,0 +1,56 @@
+{
+  "_doc": "PDF-only mode Step 1 (inventory pass) output. Produced by the agent reading 14 PDF pages of a Scribe how-to guide that captured the Domo 'Marketing & Intake' dashboard. The guide is a step-by-step click walkthrough; we treat each page's screenshot as evidence and merge into one dashboard model.",
+  "source": {
+    "type": "scribe-walkthrough-pdf",
+    "originalDashboardTitle": "Marketing & Intake",
+    "domoUrl": "https://filevine-vwpwlaw.domo.com/page/794859642",
+    "pdfPageCount": 14,
+    "notes": "Scribe overlays a click-target circle on each page; ignore it. Each page typically shows 1-2 dashboard regions partially visible."
+  },
+  "pageChrome": {
+    "title": "Marketing & Intake",
+    "filterShelf": [
+      {"column": "Marketing Type"},
+      {"column": "Initial Assessment Total"},
+      {"column": "Case Type"},
+      {"column": "Sub Type"},
+      {"column": "Assigned to Intake Full"},
+      {"column": "Processed By"},
+      {"column": "Status"},
+      {"column": "SubStatus"},
+      {"column": "Opportunity Source"},
+      {"column": "Opportunity Created Date"}
+    ],
+    "dateRangeShown": "Last 90 Days (most sections); Last 12 Months (Marketing Source Performance section)",
+    "dateRangeInferred": "page-level rolling 90-day filter; some cards override to 12-month",
+    "saveFiltersButton": true,
+    "notes": "Filter shelf wraps across two visible rows. 'DEFAULT (DEFAULT)' dropdown on left suggests saved filter sets."
+  },
+  "sections": [
+    {
+      "name": "90-Day Lead Outcome Overview",
+      "type": "banner",
+      "visibleOnPages": [1, 2, 3, 4]
+    },
+    {
+      "name": "Marketing Source Performance",
+      "type": "banner",
+      "visibleOnPages": [5, 6, 7]
+    },
+    {
+      "name": "Geographic Performance",
+      "type": "banner",
+      "visibleOnPages": [7, 8, 9]
+    },
+    {
+      "name": "Qualification & Conversion",
+      "type": "banner",
+      "visibleOnPages": [5, 7, 8]
+    },
+    {
+      "name": "Opportunity Process Time Impact",
+      "type": "banner",
+      "visibleOnPages": [9, 10, 11]
+    }
+  ]
+}
