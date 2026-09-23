@@ -246,6 +246,11 @@ Inputs (all read from `/tmp/<name>/`):
 What it auto-handles:
 - ✅ Sigma element `kind` from Domo `chartType` (via `lib/domo_chart_kinds.py`)
 - ✅ Page-level slicers → `control` elements on a hidden Data page
+  - 🔴 **Every list control carries `source: {kind: source, source: {kind: table, elementId}, columnId}`.**
+    Omit it and Sigma stores `{kind: manual}` with no options — the dropdown renders **EMPTY** with
+    no API error (hit on 12 Costa Ivone workbooks, 2026-09-23; the firm found it). Bindings use
+    `{source: {kind: table, elementId}, columnId}` — never `columnFormula`. `validate-spec.py`
+    now fails both. Already-published workbooks: `scripts/fix-sigma-list-controls.sh <wbId> <slug> --dry-run`.
 - ✅ Date filter (rolling period) → `date-range` control with `mode: current` + `unit: day|week|month`
 - ✅ Column formats → Sigma `format` objects
 - ✅ Column aliases → workbook column `name` overrides
