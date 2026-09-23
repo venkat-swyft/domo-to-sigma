@@ -160,6 +160,44 @@ def validate_workbook(spec, errors, dm_context=None):
                                      "Sigma silently drops the element")
             validate_columns(el, errors, ctx)
 
+    validate_list_controls(pages, errors)
+
+
+def validate_list_controls(pages, errors):
+    """Every list control must (a) take its options FROM a column (`source.kind ==
+    'source'`) and (b) point every binding at a column that exists on its element.
+    Either defect renders an EMPTY dropdown with no error from the API — a missing
+    `source` is stored as {kind: manual} with no options. Found on 12 Costa Ivone
+    workbooks 2026-09-23; the firm noticed before we did."""
+    cols_by_el = {}
+    for page in pages:
+        for el in page.get("elements") or []:
+            if el.get("id"):
+                cols_by_el[el["id"]] = {c.get("id") for c in el.get("columns") or []}
+    for page in pages:
+        for el in page.get("elements") or []:
+            if el.get("kind") != "control" or el.get("controlType") != "list":
+                continue
+            ctx = f"workbook control {el.get('controlId') or el.get('id')!r}"
+            src = el.get("source") or {}
+            manual = src.get("kind") == "manual" and (src.get("values") or src.get("labels"))
+            if src.get("kind") != "source" and not manual:
+                fail(errors, f"{ctx}: list control has no column-backed `source` "
+                             f"(got {src.get('kind')!r}) — the dropdown will be EMPTY. Add "
+                             "source: {kind: source, source: {kind: table, elementId}, columnId}")
+            bindings = list(el.get("filters") or [])
+            if src.get("kind") == "source":
+                bindings.append(src)
+            for b in bindings:
+                eid = (b.get("source") or {}).get("elementId")
+                cid = b.get("columnId")
+                if not cid:
+                    fail(errors, f"{ctx}: binding has no columnId (columnFormula is not a "
+                                 "valid control binding)")
+                elif eid in cols_by_el and cid not in cols_by_el[eid]:
+                    fail(errors, f"{ctx}: columnId {cid!r} not found on element {eid!r} — "
+                                 "the dropdown will be EMPTY")
+
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__)

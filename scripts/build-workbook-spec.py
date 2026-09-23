@@ -129,12 +129,20 @@ def build_control(slicer: dict, ds_id: str, master_name: str,
     mode = "exclude" if op == "NOT_IN" else "include"
     sf_col = find_sf_column(col_name, sf_columns)
     if not sf_col:
-        print(f"WARN  slicer column {col_name!r} not in datasource columns; emitting "
-              "with bare reference — verify after POST")
-        target_formula = f"[{master_name}/{col_name}]"
+        print(f"WARN  slicer column {col_name!r} not in datasource columns; binding to "
+              f"m-{slug(col_name)}, which the master will not have — the control will "
+              "render EMPTY until a matching master column exists")
+        column_id = f"m-{slug(col_name)}"
     else:
-        target_formula = f"[{master_name}/{sf_col['name'].replace('/', '-')}]"
+        # must match build_master()'s column id convention
+        column_id = f"m-{slug(sf_col['name'])}"
     cid = f"ctl-{slug(ds_id)}-{slug(col_name)}"
+    # 🔴 A list control with NO `source` is stored by Sigma as {kind: manual, valueType:
+    # text} with no options => the dropdown renders EMPTY (the filter binding is fine,
+    # there is just nothing to pick). `kind: source` pulls the options from the column
+    # and stays current. Found on 12 Costa Ivone workbooks, 2026-09-23. See
+    # sigma-skills/sigma-workbooks/reference/specification/controls.md for the shape.
+    # Both elementIds are patched from the placeholder by the caller.
     return {
         "id": f"el-{cid}",
         "kind": "control",
@@ -142,9 +150,17 @@ def build_control(slicer: dict, ds_id: str, master_name: str,
         "controlId": cid,
         "name": col_name,
         "mode": mode,
+        "selectionMode": "multiple",
+        "values": [],
+        "source": {
+            "kind": "source",
+            "source": {"kind": "table", "elementId": "_master_placeholder_"},
+            "columnId": column_id,
+        },
+        "includeNulls": "when-no-value-is-selected",
         "filters": [{
-            "source": {"kind": "element", "elementId": "_master_placeholder_"},
-            "columnFormula": target_formula,
+            "source": {"kind": "table", "elementId": "_master_placeholder_"},
+            "columnId": column_id,
         }],
     }
 
@@ -160,10 +176,8 @@ def build_date_range_control(date_filter: dict, ds_id: str,
     unit = date_filter.get("unit") or "day"
     count = date_filter.get("count")
     sf_col = find_sf_column(col, sf_columns)
-    target_formula = (
-        f"[{master_name}/{sf_col['name'].replace('/', '-')}]"
-        if sf_col else f"[{master_name}/{col}]"
-    )
+    # must match build_master()'s column id convention
+    column_id = f"m-{slug(sf_col['name'] if sf_col else col)}"
     cid = f"ctl-{slug(ds_id)}-date"
     spec = {
         "id": f"el-{cid}",
@@ -172,8 +186,8 @@ def build_date_range_control(date_filter: dict, ds_id: str,
         "controlId": cid,
         "name": col,
         "filters": [{
-            "source": {"kind": "element", "elementId": "_master_placeholder_"},
-            "columnFormula": target_formula,
+            "source": {"kind": "table", "elementId": "_master_placeholder_"},
+            "columnId": column_id,
         }],
     }
     if mode == "rolling":
@@ -382,9 +396,11 @@ def main():
         for s in page_controls.get("slicers") or []:
             ctl = build_control(s, primary_ds_id, primary_master_name, sf_cols_primary)
             if ctl:
-                # Patch placeholder with the actual master id
+                # Patch placeholder with the actual master id — the filter binding AND
+                # the value source, or the dropdown lists nothing
                 for f in ctl["filters"]:
                     f["source"]["elementId"] = primary_master_id
+                ctl["source"]["source"]["elementId"] = primary_master_id
                 controls.append(ctl)
         df_ctl = build_date_range_control(
             page_controls.get("dateFilter"), primary_ds_id, primary_master_name,
